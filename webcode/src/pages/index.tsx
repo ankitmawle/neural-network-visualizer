@@ -24,6 +24,65 @@ const toModelData = (m: any): ModelData => ({
   description: m.description || ""
 });
 
+// Parse flattened image data from C array format
+const parseFlattenedImage = (imageContent: string): number[] | null => {
+  try {
+    console.log('Parsing flattened image...');
+    
+    // Detect data type from the declaration
+    const isUint8 = imageContent.includes('uint8_t') || imageContent.includes('unsigned char');
+    const isInt8 = imageContent.includes('int8_t') || imageContent.includes('signed char');
+    const isInt = imageContent.includes('int ') && !isInt8;
+    
+    console.log(`Detected data type: ${isUint8 ? 'uint8_t' : isInt8 ? 'int8_t' : isInt ? 'int' : 'unknown'}`);
+    
+    // Extract array values using regex
+    const arrayMatch = imageContent.match(/\{([^}]+)\}/);
+    if (!arrayMatch) {
+      console.error('No array found in image content');
+      return null;
+    }
+    
+    const valuesString = arrayMatch[1];
+    const values = valuesString.split(',').map(v => {
+      const trimmed = v.trim();
+      // Handle different number formats (int8_t, uint8_t, int, hex, etc.)
+      if (trimmed.startsWith('0x')) {
+        return parseInt(trimmed, 16);
+      }
+      return parseInt(trimmed, 10);
+    });
+    
+    // Validate array length (should be 784 for 28x28 MNIST images)
+    if (values.length !== 784) {
+      console.warn(`Expected 784 values, got ${values.length}`);
+    }
+    
+    // Normalize values to 0-1 range based on detected data type
+    const normalizedValues = values.map(v => {
+      if (isUint8) {
+        // uint8_t: 0 to 255 -> 0 to 1
+        return v / 255;
+      } else if (isInt8) {
+        // int8_t: -128 to 127 -> 0 to 1
+        return Math.max(0, (v + 128) / 255);
+      } else if (isInt) {
+        // int: assume 0 to 255 range, clamp to 0-1
+        return Math.max(0, Math.min(1, v / 255));
+      } else {
+        // Default: assume 0-255 range
+        return Math.max(0, Math.min(1, v / 255));
+      }
+    });
+    
+    console.log(`Parsed image with ${values.length} values, data type: ${isUint8 ? 'uint8_t' : isInt8 ? 'int8_t' : 'int'}`);
+    return normalizedValues;
+  } catch (error) {
+    console.error('Error parsing flattened image:', error);
+    return null;
+  }
+};
+
 // Parse quantized model from C header file
 const parseQuantizedModel = (headerContent: string) => {
   try {
@@ -721,6 +780,7 @@ const NetworkViz = (
 
 const DrawingCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const flattenedImageInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [pixelData, setPixelData] = useState(new Array(64).fill(0));
   const [canvasSize, setCanvasSize] = useState(8); // Grid size for canvas
@@ -879,7 +939,7 @@ const DrawingCanvas = () => {
     const centerGX = Math.floor(x / PIXEL_SIZE);
     const centerGY = Math.floor(y / PIXEL_SIZE);
 
-    const newPixelData = [...pixelData];
+      const newPixelData = [...pixelData];
 
     // Map brushSize: 1 -> 1x1, 2 -> 3x3, 3 -> 4x4, and so on
     const boxSize = brushSize === 1 ? 1 : brushSize + 1;
@@ -898,9 +958,9 @@ const DrawingCanvas = () => {
 
         ctx.fillStyle = `rgba(255, 255, 255, ${newPixelData[index]})`;
         ctx.fillRect(gx * PIXEL_SIZE, gy * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
-        ctx.strokeStyle = '#333333';
+      ctx.strokeStyle = '#333333';
         ctx.strokeRect(gx * PIXEL_SIZE, gy * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
-      }
+    }
     }
 
     setPixelData(newPixelData);
@@ -924,7 +984,7 @@ const DrawingCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!canvas) return;
     
     // Type assertion to satisfy TypeScript
     const context = ctx as CanvasRenderingContext2D;
@@ -939,6 +999,59 @@ const DrawingCanvas = () => {
     }
     
     setPixelData(new Array(ARCHITECTURE.input).fill(0));
+  };
+
+  // Load flattened image data to canvas
+  const loadFlattenedImage = (imageData: number[]) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Type assertion to satisfy TypeScript
+    const context = ctx as CanvasRenderingContext2D;
+    
+    // Clear canvas first
+    context.fillStyle = '#1A1A1A';
+    context.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    
+    // Draw grid
+    context.strokeStyle = '#333333';
+    for (let i = 1; i < GRID_SIZE; i++) {
+      const pos = i * PIXEL_SIZE;
+      context.beginPath();
+      context.moveTo(pos, 0);
+      context.lineTo(pos, CANVAS_SIZE);
+      context.moveTo(0, pos);
+      context.lineTo(CANVAS_SIZE, pos);
+      context.stroke();
+    }
+    
+    // Update pixel data first to ensure synchronization
+    const newPixelData = [...imageData];
+    setPixelData(newPixelData);
+    
+    // Draw the image pixels
+    for (let i = 0; i < GRID_SIZE; i++) {
+      for (let j = 0; j < GRID_SIZE; j++) {
+        const index = i * GRID_SIZE + j;
+        if (index < imageData.length) {
+          const intensity = imageData[index];
+          if (intensity > 0) {
+            context.fillStyle = `rgba(255, 255, 255, ${intensity})`;
+            context.fillRect(j * PIXEL_SIZE, i * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+            context.strokeStyle = '#333333';
+            context.strokeRect(j * PIXEL_SIZE, i * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+          }
+        }
+      }
+    }
+    
+    // Force a re-render of the network visualization
+    setTimeout(() => {
+      // This will trigger the useEffect in NetworkViz to recalculate activations
+      setPixelData([...newPixelData]);
+    }, 0);
   };
 
   return (
@@ -981,19 +1094,19 @@ const DrawingCanvas = () => {
       )}
       <div className="flex gap-4 items-start justify-center">
         <div className="flex flex-col items-center">
-          <canvas
-            ref={canvasRef}
-            width={CANVAS_SIZE}
-            height={CANVAS_SIZE}
-            className="border border-gray-600 cursor-crosshair"
-            onMouseDown={(e) => {
-              setIsDrawing(true);
-              handleMouseMove(e);
-            }}
-            onMouseMove={handleMouseMove}
-            onMouseUp={() => setIsDrawing(false)}
-            onMouseLeave={() => setIsDrawing(false)}
-          />
+        <canvas
+          ref={canvasRef}
+          width={CANVAS_SIZE}
+          height={CANVAS_SIZE}
+          className="border border-gray-600 cursor-crosshair"
+          onMouseDown={(e) => {
+            setIsDrawing(true);
+            handleMouseMove(e);
+          }}
+          onMouseMove={handleMouseMove}
+          onMouseUp={() => setIsDrawing(false)}
+          onMouseLeave={() => setIsDrawing(false)}
+        />
           
           {/* Canvas Controls Below Canvas */}
           <div className="flex items-center gap-4 mt-3">
@@ -1020,13 +1133,83 @@ const DrawingCanvas = () => {
             </label>
           </div>
           <div className="flex items-center gap-4 mt-3">
-            <button
-              onClick={clearCanvas}
+          <button
+            onClick={clearCanvas}
               className="px-4 py-2 bg-gray-800 text-[#00E5FF] border border-[#00E5FF] rounded hover:bg-[#00E5FF22] transition-colors font-medium"
+          >
+            Clear
+          </button>
+     
+          
+          </div>
+          
+          {/* genrate image data from canvas */}
+          <div className="mt-3">
+              {/* Flattened Image Input */}
+            <div className="flex flex-row gap-2">
+              <div className="flex flex-col gap-2">
+              <label className="text-xs text-gray-300">Load Flattened Image:</label>
+              <textarea
+                ref={flattenedImageInputRef}
+                placeholder="Paste flattened image data (e.g., const int8_t input_data[784] = {...})"
+                className="w-48 h-20 px-2 py-1 bg-gray-800 text-gray-200 border border-gray-600 rounded text-xs font-mono resize-none"
+                onChange={(e) => {
+                  const content = e.target.value;
+                  if (content.trim()) {
+                    try {
+                      const parsedImage = parseFlattenedImage(content);
+                      if (parsedImage) {
+                        loadFlattenedImage(parsedImage);
+                        setErrorMessage("");
+                      } else {
+                        setErrorMessage("Failed to parse image data. Please check the format.");
+                      }
+                    } catch (error) {
+                      console.error('Error parsing image:', error);
+                      setErrorMessage("Failed to parse image data. Please check the format.");
+                    }
+                  }
+                }}
+              />
+              </div>
+              <button
+                onClick={() => {
+                  const textarea = document.querySelector('textarea[placeholder*="flattened image"]') as HTMLTextAreaElement;
+                  if (textarea) {
+                    textarea.value = '';
+                    setErrorMessage("");
+                  }
+                }}
+                className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700"
+              >
+                Clear
+              </button>
+              
+              
+            </div>
+            <div className="flex items-center justify-center gap-2 mt-2">
+            <button className=""
+              onClick={() => {
+                const arrayStr = pixelData
+                  .map((v, i) => {
+                    // Convert to 0-255 int for uint8_t
+                    const intVal = Math.round(Math.max(0, Math.min(1, v)) * 255);
+                    return intVal.toString();
+                  })
+                  .join(', ');
+
+                const cArray = `const uint8_t input_data[${pixelData.length}] = { ${arrayStr} };`;
+
+                // Update the textarea
+                if (flattenedImageInputRef.current) {
+                  flattenedImageInputRef.current.value = cArray;
+                }
+              }}
+              className="px-4 py-2 bg-blue-600 text-white border border-blue-700 rounded hover:bg-blue-700 transition-colors font-medium"
             >
-              Clear
+              Sync Canvas
             </button>
-            
+            </div>
           </div>
         </div>
         
@@ -1284,7 +1467,7 @@ const uint32_t L4_weights[] = {
             {ARCHITECTURE.hidden3 > 0 && <div>Hidden3: {ARCHITECTURE.hidden3} neurons</div>}
             <div>Output: {ARCHITECTURE.output} neurons</div>
             <div>Canvas: {canvasSize}×{canvasSize} grid</div>
-          </div>
+            </div>
          
         </div>
       </div>
