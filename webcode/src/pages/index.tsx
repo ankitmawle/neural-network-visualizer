@@ -1188,10 +1188,10 @@ const DrawingCanvas = () => {
               
             </div>
             <div className="flex items-center justify-center gap-2 mt-2">
-            <button className=""
+            <button 
               onClick={() => {
                 const arrayStr = pixelData
-                  .map((v, i) => {
+                  .map((v, _) => {
                     // Convert to 0-255 int for uint8_t
                     const intVal = Math.round(Math.max(0, Math.min(1, v)) * 255);
                     return intVal.toString();
