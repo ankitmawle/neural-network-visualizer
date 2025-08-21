@@ -1,58 +1,117 @@
-# Neural Network Visualizer
+# Neural Network Visualizer for RISC-V Edge AI Workshop using VSDSquadron Pro
 
-Online version **[here](https://cpldcpu.github.io/neural-network-visualizer/)**.
+Interactive neural network visualizer for edge AI workflows. Draw directly on a pixel grid, load quantized models exported as C header files, and watch activations flow through the network in real time. Built for the VSDSquadron Pro RISC-V Edge AI Workshop.
 
-This is a simple neural network visualizer. It began as a Claude Artifact and was completed with the "Copilot Edits" interface, which was released only yesterday. Very few lines were written by hand, showcasing the advances in GenAI up to today (2024-Nov-30). Compare this to the early days of LLMs when they struggled to [synthesize a simple CPU in HDL](https://github.com/cpldcpu/LLM_HDL_Design).
+Developed by [Ankit Mawle](https://www.linkedin.com/in/ankitmawle/)
+
+Repository: `https://github.com/ankitmawle/neural-network-visualizer`
+
+
 
 ## Features
 
-Why is it special? This app provides an intuitive way to visualize the power of simple multi-layer perceptrons. You can draw an 8x8 pixel image, and the connections and neuron activations update in real time, propagating through the network from left to right. 
+- Quantized C header parsing (e.g., 4-bit symmetric) with packed `uint32_t` weights
+- Dynamic architecture support:
+  - 2 hidden layers: Input → Hidden1 → Hidden2 → Output
+  - 3 hidden layers: Input → Hidden1 → Hidden2 → Hidden3 → Output
+- Automatic class labels if missing: "0".."N-1" based on output size
+- Forward pass with layer-norm and ReLU; visualization of activations and connection strengths
+- Adjustable canvas with input centering for 8x8, 28x28 (MNIST) and other square sizes
+- Drawing tools:
+  - Brush size with square mapping (1→1x1, 2→3x3, 3→4x4, ...)
+  - Full-intensity toggle to stamp maximum intensity (1.0)
+  - Clear canvas button
+- Bundled sample models and UI to paste your own C header
 
-The network model is a simple multi-layer perceptron with 64 input neurons (8x8), two hidden layers with 10 neurons each, and between 4 and 10 output neurons. Four models are provided, trained on different subsets of the MNIST dataset. `model3` is a binary network (BitNet) trained using Quantization Aware Training (QAT).
+## Tech Stack
 
-[![NN Visualizer](screenshot.png)](https://cpldcpu.github.io/neural-network-visualizer/)
+- React + TypeScript + Vite
+- Tailwind CSS + shadcn/ui
+- Static build suitable for GitHub Pages or any static host
 
-## How to Use
+## Quick Start (Local)
 
-Draw a digit on the 8x8 pixel canvas and watch the neuron activations propagate through the network in real time. The thickness of the lines between neurons indicates the product of weight and activation. Blue lines indicate a positive activation flow, and orange lines negative . A fuel gauge next to each neuron indicates the activation level. The predicted class is highlighted in the output layer on the right side. 
+1. Clone and install:
 
-- `Clear`: Clears the canvas.
-- `Model selector`: Pick one of four models.
-- `Load weights`: Load custom models in JSON format.
-- The `Connection threshold` slider: Adjust the threshold for displaying connections, limiting the display to the most salient connections.
-- `Center input`: Toggles automatic centering of the input image. Centering improves network accuracy as the MNIST dataset consists of centered images, and the inductive properties of the MLP architecture are limited otherwise.
-
-## Neural Network and Training
-
-The training code (Python) can be found in the `train` directory. The training run is configured directly in the `trainmnist.py` script. After completing the training run, the weights are saved to a JSON file. The JSON file can be loaded into the visualizer using the `Load weights` button.
-
-```python
-
-classes     = [0,1,2,3,4,5,6,7,8,9]   # selection of classes to use for the output neurons
-QuantType   = 'None'                  # Quantization type: 'None' or 'Binary'
-filename    = 'weights_full_10c_noaug.json'   # file to save the weights to
-Name        = 'Detects All Number\nFull Precision, No Augmentation\n'   # description of the model
-``` 
-
-The model structure is shown below. A layer normalization is applied to the input of every layer, which greatly improves the training stability and accuracy. The `elementwise_affine` parameter is set to `False` to reduce the number of parameters. Likewise, no bias is used in the linear layers.  `BitLinear` is a custom linear layer for quantization-aware training, for `QuantType='None'` it is a standard linear layer.
-
-```
-Sequential(
-  (0): LayerNorm((64,), eps=1e-05, elementwise_affine=False)
-  (1): BitLinear(in_features=64, out_features=10, bias=False)
-  (2): ReLU()
-  (3): LayerNorm((10,), eps=1e-05, elementwise_affine=False)
-  (4): BitLinear(in_features=10, out_features=10, bias=False)
-  (5): ReLU()
-  (6): LayerNorm((10,), eps=1e-05, elementwise_affine=False)
-  (7): BitLinear(in_features=10, out_features=10, bias=False)
-)
+```bash
+git clone https://github.com/ankitmawle/neural-network-visualizer.git
+cd neural-network-visualizer/webcode
+npm install
 ```
 
-## Building
+2. Run the dev server:
 
-The core code can be found in [`webcode/src/pages/index.tsx`](webcode/src/pages/index.tsx) and was initially generated as a *Claude-3.5-Sonnet (New)* artifact based on React. It turned out that exporting artifacts from claude is a major pain, especially once the artifact reaches that magical length where claude starts to get limited by context length and the output quality degrades.
+```bash
+npm run dev
+```
 
-Luckily, I found the [Claude Artifacts Starter](https://github.com/EndlessReform/claude-artifacts-starter) which was a great help in providing an environment that allowed to deploy the artifact to a github.io page.
+Open the shown localhost URL (e.g., `http://localhost:5173/`).
 
-All web code is in the `webcode` directory. Read Claude Artifacts Starter's [README](webcode/README.md) for more information.
+3. Build a production bundle:
+
+```bash
+npm run build
+```
+
+This creates a `dist/` folder you can self-host on any static server (Nginx, Netlify, S3, etc.).
+
+## Using the Visualizer
+
+### Draw Input
+- Use the brush size slider below the canvas to control the footprint:
+  - 1 → 1x1, 2 → 3x3, 3 → 4x4, and so on
+- Enable "Full intensity (1.0)" to stamp maximum intensity pixels
+- Click "Clear" to reset the canvas
+
+### Load a Model
+- JSON weights: click "Load Weights" and select a JSON file
+- Quantized C header: paste the file contents in the textarea (supports layers L1..L3 or L4)
+- If class labels are absent, they default to numeric strings based on output size
+
+### Visualization
+- Adjust the Connection Threshold slider to filter weaker connections
+- Toggle input centering if desired
+- Layer sizes automatically adapt to the loaded model
+
+## Self-Deployment
+
+This repository includes an easy GitHub Pages flow. It builds a variant configured for Pages and publishes it to the `gh-pages` branch.
+
+1. Make sure your changes are committed and pushed to GitHub.
+2. Build and publish:
+
+```bash
+npm run deploy
+```
+
+This runs the following scripts under the hood:
+- `build:github` – builds with GitHub Pages mode to `dist-github/`
+- `predeploy` – ensures Pages-friendly output (including `.nojekyll`)
+- `deploy` – pushes the build to the `gh-pages` branch
+
+3. In your GitHub repository:
+   - Settings → Pages → Source → select `gh-pages` branch → Save
+
+Your site will be live at `https://<your-username>.github.io/<your-repo>/`.
+
+### Manual Self-Host
+
+If you prefer your own hosting:
+
+```bash
+npm run build
+# serve the 'dist/' directory using any static server
+```
+
+No server-side code is required.
+
+## Notes & Tips
+
+- Valid C headers include layer defines such as `L1_incoming_weights`, `L1_outgoing_weights`, `L1_bitperweight` and a `const uint32_t L*_weights[]` array.
+- The parser infers whether the model has 2 or 3 hidden layers from the number of layers.
+- Input grid adapts: 64→8x8, 784→28x28, or any perfect square.
+
+## Credits
+
+- App by [Ankit Mawle](https://www.linkedin.com/in/ankitmawle/)
+- UI stack based on a Vite + TS + Tailwind + shadcn/ui starter
