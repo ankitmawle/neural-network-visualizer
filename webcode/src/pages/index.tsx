@@ -955,12 +955,13 @@ const DrawingCanvas = () => {
           `
         }}
       >
-        Multi-Layer Perceptron Visualization
+        Neural Network Visualizer for RISC-V Edge AI Workshop using VSDSquadron Pro
       </h1>
+      <h2>Developed by <a href="https://www.linkedin.com/in/ankitmawle/" target="_blank" rel="noopener noreferrer">Ankit Mawle</a></h2>
       <div>
         <div className="text-sm text-[#FF009E] min-w-[250px] mt-1 px-2 text-center">
           <a 
-            href="https://github.com/cpldcpu/neural-network-visualizer" 
+            href="https://github.com/ankitmawle/neural-network-visualizer" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="flex items-center justify-center mt-1"

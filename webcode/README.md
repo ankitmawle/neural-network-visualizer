@@ -1,98 +1,117 @@
-# 🚀 Vite + TS + Tailwind + shadcn/ui Template
+# Neural Network Visualizer for RISC-V Edge AI Workshop using VSDSquadron Pro
 
-## What's this?
+Interactive neural network visualizer for edge AI workflows. Draw directly on a pixel grid, load quantized models exported as C header files, and watch activations flow through the network in real time. Built for the VSDSquadron Pro RISC-V Edge AI Workshop.
 
-A no-nonsense template for when you need to slap a Claude-generated UI somewhere that isn't a chat window.
+Developed by [Ankit Mawle](https://www.linkedin.com/in/ankitmawle/)
 
-Uses the exact same UI stack as [Claude Artifacts](https://support.anthropic.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them), for copy-pasting:
+Repository: `https://github.com/ankitmawle/neural-network-visualizer`
 
-- [Vite](https://vitejs.dev) for speed
-- TypeScript for sanity
-- [Tailwind](https://tailwindcss.com) for style
-- [shadcn/ui](https://ui.shadcn.com) for pretty buttons
-- File-based routing because ain't nobody got time for that
-- My personal Tailwind color scheme and font choices, because I have opinions
 
-## Why use it?
 
-Because you're tired of setting up the same stack for the 100th time. This template is for the "I just want it to work" crowd.
+## Features
 
-## Quick Start
+- Quantized C header parsing (e.g., 4-bit symmetric) with packed `uint32_t` weights
+- Dynamic architecture support:
+  - 2 hidden layers: Input → Hidden1 → Hidden2 → Output
+  - 3 hidden layers: Input → Hidden1 → Hidden2 → Hidden3 → Output
+- Automatic class labels if missing: "0".."N-1" based on output size
+- Forward pass with layer-norm and ReLU; visualization of activations and connection strengths
+- Adjustable canvas with input centering for 8x8, 28x28 (MNIST) and other square sizes
+- Drawing tools:
+  - Brush size with square mapping (1→1x1, 2→3x3, 3→4x4, ...)
+  - Full-intensity toggle to stamp maximum intensity (1.0)
+  - Clear canvas button
+- Bundled sample models and UI to paste your own C header
 
-1. Use this template:
+## Tech Stack
 
-   - Click the "Use this template" button on GitHub
-   - Choose "Create a new repository"
-   - Give it a snazzy name and hit "Create repository from template"
+- React + TypeScript + Vite
+- Tailwind CSS + shadcn/ui
+- Static build suitable for GitHub Pages or any static host
 
-2. Clone your new repo:
+## Quick Start (Local)
 
-   ```
-   git clone https://github.com/yourusername/your-snazzy-new-repo.git
-   cd your-snazzy-new-repo
-   ```
+1. Clone and install:
 
-3. Install dependencies (go grab a coffee, it'll take a minute):
-
-   ```
-   npm install
-   ```
-
-4. Run it:
-
-   ```
-   npm run dev
-   ```
-
-5. Add a page:
-
-   - Throw a new `.tsx` file in `src/pages`
-   - Magic! It's now a route. (Thanks, [vite-plugin-pages](https://github.com/hannoeru/vite-plugin-pages))
-
-6. Build for production:
-
-   ```
-   npm run build
-   ```
-
-7. Deploy:
-   - Take the `dist` folder
-   - Throw it at a static host (Nginx, Netlify, whatever floats your boat)
-   - Profit!
-
-## "But how do I...?"
-
-- Customize theme? `tailwind.config.js` is your friend. (But my color choices are pretty rad, just saying.)
-- Add shadcn/ui components? `npx shadcn-ui add <component-name>`. Done.
-- Need more? Check out the [Vite docs](https://vitejs.dev/), [Tailwind docs](https://tailwindcss.com/docs), or [shadcn/ui docs](https://ui.shadcn.com/).
-
-## Deployment
-
-This template comes with an easy GitHub Pages deployment setup.
-
-1. Push your changes to GitHub.
-
-2. Run the deployment command:
-
+```bash
+git clone https://github.com/ankitmawle/neural-network-visualizer.git
+cd neural-network-visualizer/webcode
+npm install
 ```
+
+2. Run the dev server:
+
+```bash
+npm run dev
+```
+
+Open the shown localhost URL (e.g., `http://localhost:5173/`).
+
+3. Build a production bundle:
+
+```bash
+npm run build
+```
+
+This creates a `dist/` folder you can self-host on any static server (Nginx, Netlify, S3, etc.).
+
+## Using the Visualizer
+
+### Draw Input
+- Use the brush size slider below the canvas to control the footprint:
+  - 1 → 1x1, 2 → 3x3, 3 → 4x4, and so on
+- Enable "Full intensity (1.0)" to stamp maximum intensity pixels
+- Click "Clear" to reset the canvas
+
+### Load a Model
+- JSON weights: click "Load Weights" and select a JSON file
+- Quantized C header: paste the file contents in the textarea (supports layers L1..L3 or L4)
+- If class labels are absent, they default to numeric strings based on output size
+
+### Visualization
+- Adjust the Connection Threshold slider to filter weaker connections
+- Toggle input centering if desired
+- Layer sizes automatically adapt to the loaded model
+
+## Self-Deployment
+
+This repository includes an easy GitHub Pages flow. It builds a variant configured for Pages and publishes it to the `gh-pages` branch.
+
+1. Make sure your changes are committed and pushed to GitHub.
+2. Build and publish:
+
+```bash
 npm run deploy
 ```
 
-3. Set up GitHub Pages:
+This runs the following scripts under the hood:
+- `build:github` – builds with GitHub Pages mode to `dist-github/`
+- `predeploy` – ensures Pages-friendly output (including `.nojekyll`)
+- `deploy` – pushes the build to the `gh-pages` branch
 
-- Go to your repository settings
-- Navigate to Pages
-- Set the source to "gh-pages" branch
-- Save
+3. In your GitHub repository:
+   - Settings → Pages → Source → select `gh-pages` branch → Save
 
-Your site will be live at `https://yourusername.github.io/your-repo-name/`
+Your site will be live at `https://<your-username>.github.io/<your-repo>/`.
 
-Note: This setup uses HashRouter, which works out of the box with GitHub Pages. No additional configuration is needed for routing to work correctly.
+### Manual Self-Host
+
+If you prefer your own hosting:
+
+```bash
+npm run build
+# serve the 'dist/' directory using any static server
+```
+
+No server-side code is required.
+
+## Notes & Tips
+
+- Valid C headers include layer defines such as `L1_incoming_weights`, `L1_outgoing_weights`, `L1_bitperweight` and a `const uint32_t L*_weights[]` array.
+- The parser infers whether the model has 2 or 3 hidden layers from the number of layers.
+- Input grid adapts: 64→8x8, 784→28x28, or any perfect square.
 
 ## Credits
 
-- UI components lovingly generated by Claude, Anthropic's AI assistant. (No, it can't do your laundry. We asked.)
-- Template crafted by [Your Name] with only minimal cursing.
-- Comes with a personal touch of color and typography. You're welcome.
-
-Now go build something cool. Or don't. I'm a README, not a cop.
+- App by [Ankit Mawle](https://www.linkedin.com/in/ankitmawle/)
+- UI stack based on a Vite + TS + Tailwind + shadcn/ui starter
