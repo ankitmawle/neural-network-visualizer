@@ -1057,7 +1057,7 @@ const DrawingCanvas = () => {
   return (
     <div className="min-h-screen w-full bg-gray-900 flex flex-col gap-4 p-8 text-white items-center">
       <h1 
-        className="text-4xl font-bold mb-4"
+        className="text-4xl text-center font-bold mb-4"
         style={{ 
           color: '#FF9E00',
           textShadow: `
