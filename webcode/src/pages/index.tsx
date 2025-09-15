@@ -4,6 +4,8 @@ import defaultModel from '../models/defaultModel.json';
 import model1 from '../models/model1.json';
 import model2 from '../models/model2.json';
 import model3 from '../models/model3.json';
+import logodark from '../assets/logo-dark.png';
+import logobrstrip from '../assets/logobrstrip.png';
 
 // Dynamic architecture that can be updated based on loaded model
 let ARCHITECTURE = {
@@ -1070,9 +1072,19 @@ const DrawingCanvas = () => {
       >
         Neural Network Visualizer for RISC-V Edge AI Workshop using VSDSquadron Pro
       </h1>
-      <h2>Developed by <a href="https://www.linkedin.com/in/ankitmawle/" target="_blank" rel="noopener noreferrer">Ankit Mawle</a></h2>
-      <div>
-        <div className="text-sm text-[#FF009E] min-w-[250px] mt-1 px-2 text-center">
+      <div className='flex items-center justify-center mb-2'>
+        <img className='h-12 mr-4'
+          src={logodark} 
+          alt="VSDIAT Logo" />
+        <img className='h-12 mr-4'
+          src={logobrstrip} 
+          alt="Mawle Technologies Logo" />
+
+      </div>
+      <h2> To Learn more about developing Edge-AI, signup to our workshop: <a className="text-[#FF009E]" href="https://www.vlsisystemdesign.com/riscv_edgeai/" target="_blank" rel="noopener noreferrer">https://www.vlsisystemdesign.com/riscv_edgeai/</a></h2>
+      <h2>Developed by <a href="https://www.linkedin.com/in/ankitmawle/" target="_blank" rel="noopener noreferrer">Ankit Mawle</a>
+      <span>
+        <span className="text-sm text-[#FF009E] min-w-[250px] mt-1 px-2 text-center">
           <a 
             href="https://github.com/ankitmawle/neural-network-visualizer" 
             target="_blank" 
@@ -1084,8 +1096,9 @@ const DrawingCanvas = () => {
               alt="GitHub Logo" 
               className="w-4 h-4 mr-1"
             /> Link to Repository </a>
-        </div>
-      </div>
+        </span>
+      </span>
+      </h2>
    
       {errorMessage && (
         <div className="px-4 py-2 bg-red-900/50 border border-red-500 rounded mb-4 text-red-200">
