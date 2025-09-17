@@ -1057,7 +1057,18 @@ const DrawingCanvas = () => {
   };
 
   return (
+    <div>
+      <div className='bg-black w-full flex items-center justify-center p-8 '>
+        <img className='h-12 mr-4'
+          src={logodark} 
+          alt="VSDIAT Logo" />
+        <img className='h-12 mr-4'
+          src={logobrstrip} 
+          alt="Mawle Technologies Logo" />
+
+      </div>
     <div className="min-h-screen w-full bg-gray-900 flex flex-col gap-4 p-8 text-white items-center">
+      
       <h1 
         className="text-4xl text-center font-bold mb-4"
         style={{ 
@@ -1072,15 +1083,7 @@ const DrawingCanvas = () => {
       >
         Neural Network Visualizer for RISC-V Edge AI Workshop using VSDSquadron Pro
       </h1>
-      <div className='flex items-center justify-center mb-2'>
-        <img className='h-12 mr-4'
-          src={logodark} 
-          alt="VSDIAT Logo" />
-        <img className='h-12 mr-4'
-          src={logobrstrip} 
-          alt="Mawle Technologies Logo" />
-
-      </div>
+      
       <h2> To Learn more about developing Edge-AI, signup to our workshop: <a className="text-[#FF009E]" href="https://www.vlsisystemdesign.com/riscv_edgeai/" target="_blank" rel="noopener noreferrer">https://www.vlsisystemdesign.com/riscv_edgeai/</a></h2>
       <h2>Developed by <a href="https://www.linkedin.com/in/ankitmawle/" target="_blank" rel="noopener noreferrer">Ankit Mawle</a>
       <span>
@@ -1491,6 +1494,7 @@ const uint32_t L4_weights[] = {
         centerInput={centerInput}
         setCenterInput={setCenterInput}
       />
+    </div>
     </div>
   );
 };
